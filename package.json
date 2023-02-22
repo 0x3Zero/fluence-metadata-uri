@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@0x3zero/aqua-lib": "github:0x3Zero/aqua-lib",
     "@fluencelabs/fluence": "^0.28.0",
     "@fluencelabs/fluence-network-environment": "^1.0.13",
     "dotenv": "^16.0.3",

@@ -17,7 +17,7 @@ import {
 // Services
 
 export interface MyOpDef {
-    array_length: (fdb: { cid: string; key: string; name: string; public_key: string; }[], callParams: CallParams$$<'fdb'>) => number | Promise<number>;
+    array_length: (fdb: { alias: string; cid: string; data_key: string; public_key: string; }[], callParams: CallParams$$<'fdb'>) => number | Promise<number>;
 }
 export function registerMyOp(service: MyOpDef): void;
 export function registerMyOp(serviceId: string, service: MyOpDef): void;
@@ -44,15 +44,15 @@ export function registerMyOp(...args: any) {
                                 "tag" : "struct",
                                 "name" : "FdbDht",
                                 "fields" : {
+                                    "alias" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
                                     "cid" : {
                                         "tag" : "scalar",
                                         "name" : "string"
                                     },
-                                    "key" : {
-                                        "tag" : "scalar",
-                                        "name" : "string"
-                                    },
-                                    "name" : {
+                                    "data_key" : {
                                         "tag" : "scalar",
                                         "name" : "string"
                                     },
@@ -99,19 +99,10 @@ export function initialize(...args: any) {
                     (xor
                      (seq
                       (seq
-                       (seq
-                        (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
-                        (call -relay- ("op" "noop") [])
-                       )
+                       (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
                        (xor
-                        (seq
-                         (call "${process.env.RELAY}" ("${process.env.DHT_SERVICE_ID}" "initialize") [] result)
-                         (call -relay- ("op" "noop") [])
-                        )
-                        (seq
-                         (call -relay- ("op" "noop") [])
-                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
-                        )
+                        (call -relay- ("${process.env.DHT_SERVICE_ID}" "initialize") [] result)
+                        (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
                        )
                       )
                       (xor
@@ -200,35 +191,26 @@ export function sign_and_insert(...args: any) {
                          (seq
                           (seq
                            (seq
-                            (seq
-                             (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
-                             (call %init_peer_id% ("getDataSrv" "key") [] key)
-                            )
-                            (call %init_peer_id% ("getDataSrv" "pk") [] pk)
+                            (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+                            (call %init_peer_id% ("getDataSrv" "key") [] key)
                            )
-                           (call %init_peer_id% ("getDataSrv" "sk") [] sk)
+                           (call %init_peer_id% ("getDataSrv" "pk") [] pk)
                           )
-                          (call %init_peer_id% ("getDataSrv" "content") [] content)
+                          (call %init_peer_id% ("getDataSrv" "sk") [] sk)
                          )
-                         (call %init_peer_id% ("getDataSrv" "name") [] name)
+                         (call %init_peer_id% ("getDataSrv" "content") [] content)
                         )
-                        (call -relay- ("op" "noop") [])
+                        (call %init_peer_id% ("getDataSrv" "name") [] name)
                        )
                        (xor
                         (seq
                          (seq
-                          (seq
-                           (call "${process.env.PEER}" ("${process.env.ED25519_SERVICE_ID}" "sign") [content sk] signature)
-                           (call "${process.env.PEER}" ("${process.env.IPFS_DAG_SERVICE_ID}" "put") [content "" 0] result)
-                          )
-                          (call "${process.env.PEER}" ("${process.env.DHT_SERVICE_ID}" "insert") [key name result.$.cid! pk signature content] rst)
+                          (call -relay- ("ed25519" "sign") [content sk] signature)
+                          (call -relay- ("ipfs_dag" "put") [content "" 0] result)
                          )
-                         (call -relay- ("op" "noop") [])
+                         (call -relay- ("${process.env.DHT_SERVICE_ID}" "insert") [key name result.$.cid! pk signature content ""] rst)
                         )
-                        (seq
-                         (call -relay- ("op" "noop") [])
-                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
-                        )
+                        (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
                        )
                       )
                       (xor
@@ -346,91 +328,123 @@ export function get_metadata_uri(...args: any) {
                         (call %init_peer_id% ("getDataSrv" "key") [] key)
                        )
                        (new $rss
-                        (seq
-                         (call -relay- ("op" "noop") [])
-                         (xor
+                        (xor
+                         (seq
                           (seq
                            (seq
                             (seq
                              (seq
                               (seq
                                (seq
-                                (seq
-                                 (seq
-                                  (call "${process.env.PEER}" ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
-                                  (call "${process.env.PEER}" ("op" "array_length") [get_records_by_key] n)
-                                 )
-                                 (par
-                                  (fold get_records_by_key rst-0
-                                   (par
-                                    (seq
-                                     (seq
-                                      (seq
-                                       (call "${process.env.PEER}" ("${process.env.IPFS_DAG_SERVICE_ID}" "get") [rst-0.$.cid! "" 0] get)
-                                       (null)
-                                      )
-                                      (call "${process.env.PEER}" ("${process.env.BLOCK_FORMATTER_SERVICE_ID}" "serialize") [rst-0.$.name! get.$.content! rst-0.$.cid!] serialize)
-                                     )
-                                     (call "${process.env.PEER}" ("${process.env.BLOCK_FORMATTER_SERVICE_ID}" "deserialize") [serialize] $rss)
-                                    )
-                                    (next rst-0)
-                                   )
-                                   (never)
-                                  )
-                                  (null)
-                                 )
-                                )
-                                (call "${process.env.PEER}" ("math" "sub") [n 1] sub)
+                                (call -relay- ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
+                                (call -relay- ("op" "array_length") [get_records_by_key] n)
                                )
-                               (new $rss_test
-                                (seq
-                                 (seq
-                                  (seq
-                                   (call "${process.env.PEER}" ("math" "add") [sub 1] rss_incr)
-                                   (fold $rss s
+                               (par
+                                (fold get_records_by_key rst-0
+                                 (par
+                                  (new $sb
+                                   (seq
                                     (seq
                                      (seq
-                                      (ap s $rss_test)
-                                      (canon "${process.env.PEER}" $rss_test  #rss_iter_canon)
-                                     )
-                                     (xor
-                                      (match #rss_iter_canon.length rss_incr
-                                       (null)
+                                      (call -relay- ("ipfs_dag" "get") [rst-0.$.cid! "" 0] get)
+                                      (xor
+                                       (mismatch rst-0.$.alias! ""
+                                        (xor
+                                         (seq
+                                          (null)
+                                          (call -relay- ("block_formatter" "serialize") [rst-0.$.alias! get.$.content! rst-0.$.cid!] $sb)
+                                         )
+                                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+                                        )
+                                       )
+                                       (seq
+                                        (null)
+                                        (call -relay- ("block_formatter" "serialize") [rst-0.$.public_key! get.$.content! rst-0.$.cid!] $sb)
+                                       )
                                       )
-                                      (next s)
+                                     )
+                                     (new $sb_test
+                                      (seq
+                                       (seq
+                                        (seq
+                                         (call -relay- ("math" "add") [0 1] sb_incr)
+                                         (fold $sb s
+                                          (seq
+                                           (seq
+                                            (ap s $sb_test)
+                                            (canon -relay- $sb_test  #sb_iter_canon)
+                                           )
+                                           (xor
+                                            (match #sb_iter_canon.length sb_incr
+                                             (null)
+                                            )
+                                            (next s)
+                                           )
+                                          )
+                                          (never)
+                                         )
+                                        )
+                                        (canon -relay- $sb_test  #sb_result_canon)
+                                       )
+                                       (ap #sb_result_canon sb_gate)
+                                      )
                                      )
                                     )
-                                    (never)
+                                    (call -relay- ("block_formatter" "deserialize") [sb_gate.$.[0]!] $rss)
                                    )
                                   )
-                                  (canon "${process.env.PEER}" $rss_test  #rss_result_canon)
+                                  (next rst-0)
                                  )
-                                 (ap #rss_result_canon rss_gate)
+                                 (never)
                                 )
+                                (null)
                                )
                               )
-                              (call "${process.env.PEER}" ("math" "sub") [n 1] sub-0)
+                              (call -relay- ("math" "sub") [n 1] sub)
                              )
-                             (canon "${process.env.PEER}" $rss  #rss_canon)
+                             (new $rss_test
+                              (seq
+                               (seq
+                                (seq
+                                 (call -relay- ("math" "add") [sub 1] rss_incr)
+                                 (fold $rss s
+                                  (seq
+                                   (seq
+                                    (ap s $rss_test)
+                                    (canon -relay- $rss_test  #rss_iter_canon)
+                                   )
+                                   (xor
+                                    (match #rss_iter_canon.length rss_incr
+                                     (null)
+                                    )
+                                    (next s)
+                                   )
+                                  )
+                                  (never)
+                                 )
+                                )
+                                (canon -relay- $rss_test  #rss_result_canon)
+                               )
+                               (ap #rss_result_canon rss_gate)
+                              )
+                             )
                             )
-                            (call "${process.env.PEER}" ("${process.env.BLOCK_FORMATTER_SERVICE_ID}" "format") ["" #rss_canon] format)
+                            (call -relay- ("math" "sub") [n 1] sub-0)
                            )
-                           (call -relay- ("op" "noop") [])
+                           (canon -relay- $rss  #rss_canon)
                           )
-                          (seq
-                           (call -relay- ("op" "noop") [])
-                           (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
-                          )
+                          (call -relay- ("block_formatter" "format") ["" #rss_canon] format)
                          )
+                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
                         )
                        )
                       )
                       (xor
                        (call %init_peer_id% ("callbackSrv" "response") [format])
-                       (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+                       (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
                       )
                      )
-                     (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+                     (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 4])
                     )
     `
     return callFunction$$(

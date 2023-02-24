@@ -38,7 +38,12 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
     let data = JSON.parse(response)
 
     data = Object.keys(data).reduce((prev, curr) => {
-      const d = JSON.parse(data[curr])
+      let d
+      try {
+        d = JSON.parse(data[curr])
+      } catch(e) {
+        d = ""
+      }
       return {
         ...prev,
         [curr]: d.content ? d.content : d

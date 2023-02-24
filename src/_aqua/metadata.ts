@@ -336,7 +336,7 @@ export function get_metadata_uri(...args: any) {
                              (seq
                               (seq
                                (seq
-                                (call -relay- ("" "get_records_by_key") [key] get_records_by_key)
+                                (call -relay- ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
                                 (call -relay- ("op" "array_length") [get_records_by_key] n)
                                )
                                (par

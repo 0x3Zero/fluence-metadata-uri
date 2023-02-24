@@ -4,6 +4,7 @@ import "@fluencelabs/aqua-lib/builtin.aqua"
 import "@0x3zero/aqua-lib/builtin.aqua"
 
 const DHT_SERVICE_ID ?= ""
+const IPFS_HOST ?= ""
 
 service MyOp("op"):
   array_length(fdb: []FdbDht) -> i64
@@ -23,7 +24,7 @@ func sign_and_insert(key: string, pk: string, sk: string, content: string, name:
     -- fish_dht <- Dht.get_latest_record_by_pk_and_key(key, pk)
     signature <- Ed25519.sign(content, sk)
     -- push content to ipfs
-    result <- IpfsDag.put(content, "", 0)
+    result <- IpfsDag.put(content, IPFS_HOST, 0)
     -- DHT
     -- if fish_dht.cid != "":
       -- rst <- Dht.insert(key, fish_dht.name, result.cid, pk, signature, content)
@@ -46,7 +47,7 @@ func get_metadata_uri(key: string) -> string:
     n <- MyOp.array_length(results)
 
     for rst <- results par:
-      rs = IpfsDag.get(rst.cid, "", 0)
+      rs = IpfsDag.get(rst.cid, IPFS_HOST, 0)
       sb: *string
       if rst.alias != "":
         sb <- BlockFormatter.serialize(rst.alias, rs.content, rst.cid)

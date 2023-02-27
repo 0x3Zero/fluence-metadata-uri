@@ -208,7 +208,7 @@ export function sign_and_insert(...args: any) {
                           (call -relay- ("ed25519" "sign") [content sk] signature)
                           (call -relay- ("ipfs_dag" "put") [content "${process.env.IPFS_HOST}" 0] result)
                          )
-                         (call -relay- ("" "insert") [key name result.$.cid! pk signature content ""] rst)
+                         (call -relay- ("${process.env.DHT_SERVICE_ID}" "insert") [key name result.$.cid! pk signature content ""] rst)
                         )
                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
                        )
@@ -336,7 +336,7 @@ export function get_metadata_uri(...args: any) {
                              (seq
                               (seq
                                (seq
-                                (call -relay- ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
+                                (call -relay- ("" "get_records_by_key") [key] get_records_by_key)
                                 (call -relay- ("op" "array_length") [get_records_by_key] n)
                                )
                                (par

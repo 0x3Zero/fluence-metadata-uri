@@ -24,6 +24,7 @@ async function runFluence() {
 
 const app: Express = express();
 const port = process.env.PORT || 3030;
+const ttl = Number(process.env.TTL || 10000);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Nothing to see here :p');
@@ -33,7 +34,7 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
   console.log(peer.getStatus())
   try {
 
-    const response = await get_metadata_uri(peer, req.params.id);
+    const response = await get_metadata_uri(peer, req.params.id, { ttl: ttl } );
     console.log({response})
     let data = JSON.parse(response)
 

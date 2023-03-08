@@ -2,6 +2,7 @@ import express, { Express, Request, Response } from 'express';
 import { Fluence, FluencePeer, KeyPair } from '@fluencelabs/fluence';
 import {get_metadata_uri } from './_aqua/metadata';
 import dotenv from 'dotenv';
+import cors from 'cors';
 
 dotenv.config();
 
@@ -25,6 +26,9 @@ async function runFluence() {
 const app: Express = express();
 const port = process.env.PORT || 3030;
 const ttl = Number(process.env.TTL || 10000);
+
+app.use(cors());
+app.use(express.json());
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Nothing to see here :p');

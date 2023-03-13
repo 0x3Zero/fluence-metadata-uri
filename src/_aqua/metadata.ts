@@ -101,7 +101,7 @@ export function initialize(...args: any) {
                       (seq
                        (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
                        (xor
-                        (call -relay- ("" "initialize") [] result)
+                        (call -relay- ("${process.env.DHT_SERVICE_ID}" "initialize") [] result)
                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
                        )
                       )
@@ -206,7 +206,7 @@ export function sign_and_insert(...args: any) {
                         (seq
                          (seq
                           (call -relay- ("ed25519" "sign") [content sk] signature)
-                          (call -relay- ("ipfs_dag" "put") [content "${process.env.IPFS_HOST}" 0] result)
+                          (call -relay- ("ipfs_dag" "put") [content "" 0] result)
                          )
                          (call -relay- ("${process.env.DHT_SERVICE_ID}" "insert") [key name result.$.cid! pk signature content ""] rst)
                         )
@@ -334,102 +334,105 @@ export function get_metadata_uri(...args: any) {
                            (seq
                             (seq
                              (seq
-                              (seq
-                               (seq
-                                (call -relay- ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
-                                (call -relay- ("op" "array_length") [get_records_by_key] n)
-                               )
-                               (par
-                                (fold get_records_by_key rst-0
-                                 (par
-                                  (new $sb
-                                   (seq
-                                    (seq
-                                     (seq
-                                      (call -relay- ("ipfs_dag" "get") [rst-0.$.cid! "${process.env.IPFS_HOST}" 0] get)
-                                      (xor
-                                       (mismatch rst-0.$.alias! ""
-                                        (xor
-                                         (seq
-                                          (null)
-                                          (call -relay- ("block_formatter" "serialize") [rst-0.$.alias! get.$.content! rst-0.$.cid!] $sb)
-                                         )
-                                         (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
-                                        )
-                                       )
-                                       (seq
-                                        (null)
-                                        (call -relay- ("block_formatter" "serialize") [rst-0.$.public_key! get.$.content! rst-0.$.cid!] $sb)
-                                       )
-                                      )
-                                     )
-                                     (new $sb_test
-                                      (seq
-                                       (seq
-                                        (seq
-                                         (call -relay- ("math" "add") [0 1] sb_incr)
-                                         (fold $sb s
-                                          (seq
-                                           (seq
-                                            (ap s $sb_test)
-                                            (canon -relay- $sb_test  #sb_iter_canon)
-                                           )
-                                           (xor
-                                            (match #sb_iter_canon.length sb_incr
-                                             (null)
-                                            )
-                                            (next s)
-                                           )
-                                          )
-                                          (never)
-                                         )
-                                        )
-                                        (canon -relay- $sb_test  #sb_result_canon)
-                                       )
-                                       (ap #sb_result_canon sb_gate)
-                                      )
-                                     )
-                                    )
-                                    (call -relay- ("block_formatter" "deserialize") [sb_gate.$.[0]!] $rss)
-                                   )
-                                  )
-                                  (next rst-0)
-                                 )
-                                 (never)
-                                )
-                                (null)
-                               )
-                              )
-                              (call -relay- ("math" "sub") [n 1] sub)
+                              (call -relay- ("${process.env.DHT_SERVICE_ID}" "get_records_by_key") [key] get_records_by_key)
+                              (call -relay- ("op" "array_length") [get_records_by_key] n)
                              )
-                             (new $rss_test
-                              (seq
-                               (seq
-                                (seq
-                                 (call -relay- ("math" "add") [sub 1] rss_incr)
-                                 (fold $rss s
+                             (par
+                              (fold get_records_by_key rst-0
+                               (par
+                                (new $sb
+                                 (seq
                                   (seq
                                    (seq
-                                    (ap s $rss_test)
-                                    (canon -relay- $rss_test  #rss_iter_canon)
-                                   )
-                                   (xor
-                                    (match #rss_iter_canon.length rss_incr
-                                     (null)
+                                    (call -relay- ("ipfs_dag" "get") [rst-0.$.cid! "" 0] get)
+                                    (xor
+                                     (mismatch rst-0.$.alias! ""
+                                      (xor
+                                       (seq
+                                        (null)
+                                        (call -relay- ("block_formatter" "serialize") [rst-0.$.alias! get.$.content! rst-0.$.cid!] $sb)
+                                       )
+                                       (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+                                      )
+                                     )
+                                     (seq
+                                      (null)
+                                      (call -relay- ("block_formatter" "serialize") [rst-0.$.public_key! get.$.content! rst-0.$.cid!] $sb)
+                                     )
                                     )
-                                    (next s)
+                                   )
+                                   (new $sb_test
+                                    (seq
+                                     (seq
+                                      (seq
+                                       (call -relay- ("math" "add") [0 1] sb_incr)
+                                       (fold $sb s
+                                        (seq
+                                         (seq
+                                          (ap s $sb_test)
+                                          (canon -relay- $sb_test  #sb_iter_canon)
+                                         )
+                                         (xor
+                                          (match #sb_iter_canon.length sb_incr
+                                           (null)
+                                          )
+                                          (next s)
+                                         )
+                                        )
+                                        (never)
+                                       )
+                                      )
+                                      (canon -relay- $sb_test  #sb_result_canon)
+                                     )
+                                     (ap #sb_result_canon sb_gate)
+                                    )
                                    )
                                   )
-                                  (never)
+                                  (call -relay- ("block_formatter" "deserialize") [sb_gate.$.[0]!] $rss)
                                  )
                                 )
-                                (canon -relay- $rss_test  #rss_result_canon)
+                                (next rst-0)
                                )
-                               (ap #rss_result_canon rss_gate)
+                               (never)
                               )
+                              (null)
                              )
                             )
-                            (call -relay- ("math" "sub") [n 1] sub-0)
+                            (par
+                             (seq
+                              (seq
+                               (call -relay- ("math" "sub") [n 1] sub)
+                               (new $rss_test
+                                (seq
+                                 (seq
+                                  (seq
+                                   (call -relay- ("math" "add") [sub 1] rss_incr)
+                                   (fold $rss s
+                                    (seq
+                                     (seq
+                                      (ap s $rss_test)
+                                      (canon -relay- $rss_test  #rss_iter_canon)
+                                     )
+                                     (xor
+                                      (match #rss_iter_canon.length rss_incr
+                                       (null)
+                                      )
+                                      (next s)
+                                     )
+                                    )
+                                    (never)
+                                   )
+                                  )
+                                  (canon -relay- $rss_test  #rss_result_canon)
+                                 )
+                                 (ap #rss_result_canon rss_gate)
+                                )
+                               )
+                              )
+                              (call -relay- ("math" "sub") [n 1] sub-0)
+                             )
+                             (call -relay- ("peer" "timeout") [9000 "timeout"])
+                            )
                            )
                            (canon -relay- $rss  #rss_canon)
                           )

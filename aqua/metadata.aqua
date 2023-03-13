@@ -56,9 +56,9 @@ func get_metadata_uri(key: string) -> string:
       sbt = sb!
       rss <- BlockFormatter.deserialize(sbt)
     join rss[n-1]
+    par Peer.timeout(9000, "timeout")
 
     metadata = BlockFormatter.format("", rss)
-    -- par Peer.timeout(5000, "timeout")
   <- metadata
     
 

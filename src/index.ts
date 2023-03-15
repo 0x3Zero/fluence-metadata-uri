@@ -23,6 +23,15 @@ async function runFluence() {
   }
 }
 
+function isJsonObject(strData: string) {
+  try {
+      JSON.parse(strData);
+  } catch (e) {
+      return false;
+  }
+  return true;
+}
+
 const app: Express = express();
 const port = process.env.PORT || 3030;
 const ttl = Number(process.env.TTL || 10000);
@@ -43,15 +52,20 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
     let data = JSON.parse(response)
 
     data = Object.keys(data).reduce((prev, curr) => {
-      let d
-      try {
-        d = JSON.parse(data[curr])
-      } catch(e) {
-        d = ""
+      let content = ""
+      if (isJsonObject(data[curr])) {
+        let d = JSON.parse(data[curr])
+
+        if (d.content) {
+          content = isJsonObject(d.content) ? JSON.parse(d.content) : d.content
+        } else {
+          content = d
+        }
       }
+      
       return {
         ...prev,
-        [curr]: d.content ? d.content : d
+        [curr]: content
       }
     }, {})
 

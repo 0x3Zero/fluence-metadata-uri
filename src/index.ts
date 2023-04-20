@@ -1,6 +1,6 @@
 import express, { Express, Request, Response } from 'express';
 import { Fluence, FluencePeer, KeyPair } from '@fluencelabs/fluence';
-import {get_metadata_uri } from './_aqua/metadata';
+import {get_metadata_uri, ipfs_get } from './_aqua/metadata';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
@@ -49,25 +49,25 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
 
     const response = await get_metadata_uri(peer, req.params.id, { ttl: ttl } );
     console.log({response})
-    let data = JSON.parse(response)
 
-    data = Object.keys(data).reduce((prev, curr) => {
-      let content = ""
-      if (isJsonObject(data[curr])) {
-        let d = JSON.parse(data[curr])
+    let data: any = {}
 
-        if (d.content) {
-          content = isJsonObject(d.content) ? JSON.parse(d.content) : d.content
-        } else {
-          content = d
+    if (response.success) {
+
+      for (let val of response.metadatas) {
+        let content = await ipfs_get(peer, val.cid, { ttl: ttl });
+
+        if (content.success) {
+          if (isJsonObject(content.content)) {
+            let d = JSON.parse(content.content)
+
+            if (d.content) {
+              data[val.alias != "" ? val.alias : val.public_key] = d.content;
+            }
+          }
         }
       }
-      
-      return {
-        ...prev,
-        [curr]: content
-      }
-    }, {})
+    }
 
     res.json(data);
   } catch (err) {

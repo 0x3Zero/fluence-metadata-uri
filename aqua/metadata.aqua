@@ -12,6 +12,11 @@ func ipfs_get(cid: string) -> IpfsDagGetResult:
   on HOST_PEER_ID:
     result <- IpfsDag.get(cid, "", 0)
   <- result
+
+func get_metadatas(data_key: string) -> FdbMetadatasResult:
+  on HOST_PEER_ID:
+    result <- Node.get_metadatas(data_key)
+  <- result
     
 
 

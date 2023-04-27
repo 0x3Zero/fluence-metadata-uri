@@ -51,6 +51,7 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
     console.log({response})
 
     let data: any = {}
+    let quantum: any = {}
 
     if (response.success) {
 
@@ -63,12 +64,15 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
 
             if (d.content) {
               data[val.alias != "" ? val.alias : val.public_key] = d.content;
+              if (val.alias === "") {
+                quantum[val.public_key] = d.content;
+              }
             }
           }
         }
       }
     }
-
+    data['quantum'] = quantum;
     res.json(data);
   } catch (err) {
     console.log({err})

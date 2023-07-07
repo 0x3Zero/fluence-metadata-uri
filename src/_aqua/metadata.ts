@@ -18,7 +18,7 @@ import {
 
 // Functions
  
-export type Get_metadata_uriResult = { err_msg: string; metadatas: { alias: string; cid: string; data_key: string; public_key: string; }[]; success: boolean; }
+export type Get_metadata_uriResult = { err_msg: string; metadatas: { alias: string; cid: string; data_key: string; hash: string; public_key: string; }[]; success: boolean; }
 export function get_metadata_uri(
     key: string,
     config?: {ttl?: number}
@@ -85,7 +85,15 @@ export function get_metadata_uri(...args: any) {
                                 "tag" : "struct",
                                 "name" : "Metadata",
                                 "fields" : {
+                                    "public_key" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
                                     "alias" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
+                                    "hash" : {
                                         "tag" : "scalar",
                                         "name" : "string"
                                     },
@@ -94,10 +102,6 @@ export function get_metadata_uri(...args: any) {
                                         "name" : "string"
                                     },
                                     "data_key" : {
-                                        "tag" : "scalar",
-                                        "name" : "string"
-                                    },
-                                    "public_key" : {
                                         "tag" : "scalar",
                                         "name" : "string"
                                     }
@@ -192,6 +196,120 @@ export function ipfs_get(...args: any) {
                         "error" : {
                             "tag" : "scalar",
                             "name" : "string"
+                        },
+                        "success" : {
+                            "tag" : "scalar",
+                            "name" : "bool"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "names" : {
+        "relay" : "-relay-",
+        "getDataSrv" : "getDataSrv",
+        "callbackSrv" : "callbackSrv",
+        "responseSrv" : "callbackSrv",
+        "responseFnName" : "response",
+        "errorHandlingSrv" : "errorHandlingSrv",
+        "errorFnName" : "error"
+    }
+},
+        script
+    )
+}
+
+ 
+export type Get_metadatasResult = { err_msg: string; metadatas: { alias: string; cid: string; data_key: string; hash: string; public_key: string; }[]; success: boolean; }
+export function get_metadatas(
+    data_key: string,
+    config?: {ttl?: number}
+): Promise<Get_metadatasResult>;
+
+export function get_metadatas(
+    peer: FluencePeer,
+    data_key: string,
+    config?: {ttl?: number}
+): Promise<Get_metadatasResult>;
+
+export function get_metadatas(...args: any) {
+
+    let script = `
+                    (xor
+                     (seq
+                      (seq
+                       (seq
+                        (call %init_peer_id% ("getDataSrv" "-relay-") [] -relay-)
+                        (call %init_peer_id% ("getDataSrv" "data_key") [] data_key)
+                       )
+                       (xor
+                        (call -relay- ("transaction" "get_metadatas") [data_key] result)
+                        (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 1])
+                       )
+                      )
+                      (xor
+                       (call %init_peer_id% ("callbackSrv" "response") [result])
+                       (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 2])
+                      )
+                     )
+                     (call %init_peer_id% ("errorHandlingSrv" "error") [%last_error% 3])
+                    )
+    `
+    return callFunction$$(
+        args,
+        {
+    "functionName" : "get_metadatas",
+    "arrow" : {
+        "tag" : "arrow",
+        "domain" : {
+            "tag" : "labeledProduct",
+            "fields" : {
+                "data_key" : {
+                    "tag" : "scalar",
+                    "name" : "string"
+                }
+            }
+        },
+        "codomain" : {
+            "tag" : "unlabeledProduct",
+            "items" : [
+                {
+                    "tag" : "struct",
+                    "name" : "FdbMetadatasResult",
+                    "fields" : {
+                        "err_msg" : {
+                            "tag" : "scalar",
+                            "name" : "string"
+                        },
+                        "metadatas" : {
+                            "tag" : "array",
+                            "type" : {
+                                "tag" : "struct",
+                                "name" : "Metadata",
+                                "fields" : {
+                                    "public_key" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
+                                    "alias" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
+                                    "hash" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
+                                    "cid" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    },
+                                    "data_key" : {
+                                        "tag" : "scalar",
+                                        "name" : "string"
+                                    }
+                                }
+                            }
                         },
                         "success" : {
                             "tag" : "scalar",

@@ -1,27 +1,29 @@
 import express, { Express, Request, Response } from 'express';
-import { Fluence, FluencePeer, KeyPair } from '@fluencelabs/fluence';
-import {get_metadata_uri, ipfs_get } from './_aqua/metadata';
+import { JSONRPCClient, TypedJSONRPCClient } from 'json-rpc-2.0';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import axios from 'axios';
+import { Filter, Methods } from './types';
 
 dotenv.config();
 
-const peer = new FluencePeer();
-
-async function runFluence() {
-  try {
-    await peer.start({
-        connectTo: process.env.RELAY,
-    });
-    console.log(
-      'created a fluence client %s with relay %s',
-      peer.getStatus().peerId,
-      peer.getStatus().relayPeerId,
-    );
-  } catch (err) {
-    console.error({err})
-  }
-}
+const jsonRpcUrl = process.env.JSONRPC_URL || "";
+const client: TypedJSONRPCClient<Methods> = new JSONRPCClient((jsonRPCRequest) =>
+  axios(jsonRpcUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    data: jsonRPCRequest,
+  }).then((response) => {
+    if (response.status === 200) {
+      // Use client.receive when you received a JSON-RPC response.
+      return client.receive(response.data)
+    } else if (jsonRPCRequest.id !== undefined) {
+      return Promise.reject(new Error(response.statusText));
+    }
+  })
+);
 
 function isJsonObject(strData: string) {
   try {
@@ -43,36 +45,118 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Nothing to see here :p');
 });
 
-app.get('/metadata/:id', async (req: Request, res: Response) => {
-  console.log(peer.getStatus())
+app.get('/metadata/:dataKey', async (req: Request, res: Response) => {
   try {
 
-    const response = await get_metadata_uri(peer, req.params.id, { ttl: ttl } );
-    console.log({response})
-
+    let metadatas = await client.request("get_metadatas", [req.params.dataKey, ""]);
     let data: any = {}
-    let quantum: any = {}
 
-    if (response.success) {
-
-      for (let val of response.metadatas) {
-        let content = await ipfs_get(peer, val.cid, { ttl: ttl });
-
+    if (metadatas.success) {
+      for (let val of metadatas.metadatas) {
+        let content = await client.request("ipfs_get", [val.cid]);
+        
         if (content.success) {
           if (isJsonObject(content.content)) {
             let d = JSON.parse(content.content)
 
             if (d.content) {
               data[val.alias != "" ? val.alias : val.public_key] = d.content;
-              if (val.alias === "") {
-                quantum[val.public_key] = d.content;
-              }
             }
           }
         }
       }
     }
-    data['quantum'] = quantum;
+
+    // const response = await get_metadata_uri(peer, req.params.id, { ttl: ttl } );
+    // console.log({response})
+
+    // let data: any = {}
+    // let quantum: any = {}
+
+    // if (response.success) {
+
+    //   for (let val of response.metadatas) {
+    //     let content = await ipfs_get(peer, val.cid, { ttl: ttl });
+
+    //     if (content.success) {
+    //       if (isJsonObject(content.content)) {
+    //         let d = JSON.parse(content.content)
+
+    //         if (d.content) {
+    //           data[val.alias != "" ? val.alias : val.public_key] = d.content;
+    //           if (val.alias === "") {
+    //             quantum[val.public_key] = d.content;
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+    // data['quantum'] = quantum;
+    res.json(data);
+  } catch (err) {
+    console.log({err})
+    res.status(400).json({
+      error: err
+    })
+  }
+});
+
+app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
+  try {
+
+    let metadatas = await client.request("get_metadatas_by_tokenkey", [req.params.tokenKey, req.params.tokenId, ""]);
+    let data: any = {}
+
+    if (metadatas.success) {
+      for (let val of metadatas.metadatas) {
+        let content = await client.request("ipfs_get", [val.cid]);
+        
+        if (content.success) {
+          if (isJsonObject(content.content)) {
+            let d = JSON.parse(content.content)
+
+            if (d.content) {
+              data[val.alias != "" ? val.alias : val.public_key] = d.content;
+            }
+          }
+        }
+      }
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.log({err})
+    res.status(400).json({
+      error: err
+    })
+  }
+});
+
+app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: Response) => {
+  try {
+
+    let tokenKey = await client.request("generate_token_key", [req.params.chainId, req.params.tokenAddress]);
+
+    let metadatas = await client.request("get_metadatas_by_tokenkey", [tokenKey, req.params.tokenId, ""]);
+    let data: any = {}
+
+    if (metadatas.success) {
+      for (let val of metadatas.metadatas) {
+        let content = await client.request("ipfs_get", [val.cid]);
+        
+        if (content.success) {
+          if (isJsonObject(content.content)) {
+            let d = JSON.parse(content.content)
+
+            if (d.content) {
+              data[val.alias != "" ? val.alias : val.public_key] = d.content;
+            }
+          }
+        }
+      }
+    }
+
     res.json(data);
   } catch (err) {
     console.log({err})
@@ -84,5 +168,4 @@ app.get('/metadata/:id', async (req: Request, res: Response) => {
 
 app.listen(port, async () => {
   console.log(`⚡️[server]: Server is running at http://localhost:${port}`);
-  runFluence();
 });

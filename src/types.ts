@@ -2,9 +2,12 @@ export type Methods = {
   get_complete_transactions(params: [number, number]): TransactionsResult;
   get_metadatas(params: [string, string]): MetadatasResult;
   get_metadatas_by_tokenkey(params: [string, string, string]): MetadatasResult;
+  get_metadatas_by_block(params: [string, string]): MetadatasResult;
   ipfs_get(params: [string]): IpfsGetResult;
   search_metadatas(params: Filter): MetadatasResult;
   generate_token_key(params: [string, string]): string;
+  generate_data_key(params: [string, string, string]): string;
+  get_meta_contract(params: [string]): MetaContractResult;
 };
 
 export type Filter = {
@@ -65,5 +68,17 @@ export type Metadata = {
 export type MetadatasResult = { 
   err_msg: string; 
   metadatas: Metadata[]; 
+  success: boolean; 
+}
+
+export type MetaContractResult = { 
+  err_msg: string; 
+  meta: { 
+    cid: string; 
+    hash: string; 
+    meta_contract_id: string; 
+    public_key: string; 
+    token_key: string; 
+  }; 
   success: boolean; 
 }

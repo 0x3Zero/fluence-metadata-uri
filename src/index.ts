@@ -45,71 +45,50 @@ app.get('/', (req: Request, res: Response) => {
   res.send('Nothing to see here :p');
 });
 
-app.get('/metadata/:dataKey', async (req: Request, res: Response) => {
-  try {
+// app.get('/metadata/:dataKey', async (req: Request, res: Response) => {
+//   try {
 
-    let metadatas = await client.request("get_metadatas", [req.params.dataKey, ""]);
-    let data: any = {}
+//     let metadatas = await client.request("get_metadatas", [req.params.dataKey, ""]);
+//     let data: any = {}
 
-    if (metadatas.success) {
-      for (let val of metadatas.metadatas) {
-        let content = await client.request("ipfs_get", [val.cid]);
+//     if (metadatas.success) {
+//       for (let val of metadatas.metadatas) {
+//         let content = await client.request("ipfs_get", [val.cid]);
         
-        if (content.success) {
-          if (isJsonObject(content.content)) {
-            let d = JSON.parse(content.content)
+//         if (content.success) {
+//           if (isJsonObject(content.content)) {
+//             let d = JSON.parse(content.content)
 
-            if (d.content) {
-              data[val.alias != "" ? val.alias : val.public_key] = d.content;
-            }
-          }
-        }
-      }
-    }
-
-    // const response = await get_metadata_uri(peer, req.params.id, { ttl: ttl } );
-    // console.log({response})
-
-    // let data: any = {}
-    // let quantum: any = {}
-
-    // if (response.success) {
-
-    //   for (let val of response.metadatas) {
-    //     let content = await ipfs_get(peer, val.cid, { ttl: ttl });
-
-    //     if (content.success) {
-    //       if (isJsonObject(content.content)) {
-    //         let d = JSON.parse(content.content)
-
-    //         if (d.content) {
-    //           data[val.alias != "" ? val.alias : val.public_key] = d.content;
-    //           if (val.alias === "") {
-    //             quantum[val.public_key] = d.content;
-    //           }
-    //         }
-    //       }
-    //     }
-    //   }
-    // }
-    // data['quantum'] = quantum;
-    res.json(data);
-  } catch (err) {
-    console.log({err})
-    res.status(400).json({
-      error: err
-    })
-  }
-});
+//             if (d.content) {
+//               data[val.alias != "" ? val.alias : val.public_key] = d.content;
+//             }
+//           }
+//         }
+//       }
+//     }
+//     res.json(data);
+//   } catch (err) {
+//     console.log({err})
+//     res.status(400).json({
+//       error: err
+//     })
+//   }
+// });
 
 app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
   try {
+    let metaContract = await client.request("get_meta_contract", [req.params.tokenKey]);
+
+    if (!metaContract.success) {
+      throw new Error(metaContract.err_msg);
+    }
 
     let metadatas = await client.request("get_metadatas_by_tokenkey", [req.params.tokenKey, req.params.tokenId, ""]);
     let data: any = {}
 
     if (metadatas.success) {
-      for (let val of metadatas.metadatas) {
+      let filteredMetadatas = metadatas.metadatas.filter(m => m.meta_contract_id === metaContract.meta.meta_contract_id)
+      for (let val of filteredMetadatas) {
         let content = await client.request("ipfs_get", [val.cid]);
         
         if (content.success) {
@@ -138,7 +117,15 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
 
     let tokenKey = await client.request("generate_token_key", [req.params.chainId, req.params.tokenAddress]);
 
-    let metadatas = await client.request("get_metadatas_by_tokenkey", [tokenKey, req.params.tokenId, ""]);
+    let metaContract = await client.request("get_meta_contract", [tokenKey]);
+
+    if (!metaContract.success) {
+      throw new Error(metaContract.err_msg);
+    }
+
+    let dataKey = await client.request("generate_data_key", [req.params.chainId, req.params.tokenAddress, req.params.tokenId])
+
+    let metadatas = await client.request("get_metadatas_by_block", [dataKey, metaContract.meta.meta_contract_id]);
     let data: any = {}
 
     if (metadatas.success) {

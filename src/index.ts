@@ -125,7 +125,7 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
 
     let dataKey = await client.request("generate_data_key", [req.params.chainId, req.params.tokenAddress, req.params.tokenId])
 
-    let metadatas = await client.request("get_metadatas_by_block", [dataKey, metaContract.meta.meta_contract_id]);
+    let metadatas = await client.request("get_metadatas_by_block", [dataKey, metaContract.meta.meta_contract_id, ""]);
     let data: any = {}
 
     if (metadatas.success) {

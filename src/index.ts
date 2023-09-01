@@ -77,18 +77,18 @@ app.get('/', (req: Request, res: Response) => {
 
 app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
   try {
-    let metaContract = await client.request("get_meta_contract", [req.params.tokenKey]);
+    // let metaContract = await client.request("get_meta_contract", [req.params.tokenKey]);
 
-    if (!metaContract.success) {
-      throw new Error(metaContract.err_msg);
-    }
+    // if (!metaContract.success) {
+    //   throw new Error(metaContract.err_msg);
+    // }
 
     let metadatas = await client.request("get_metadatas_by_tokenkey", [req.params.tokenKey, req.params.tokenId, ""]);
     let data: any = {}
 
     if (metadatas.success) {
-      let filteredMetadatas = metadatas.metadatas.filter(m => m.meta_contract_id === metaContract.meta.meta_contract_id)
-      for (let val of filteredMetadatas) {
+      // let filteredMetadatas = metadatas.metadatas.filter(m => m.meta_contract_id === metaContract.meta.meta_contract_id)
+      for (let val of metadatas.metadatas) {
         let content = await client.request("ipfs_get", [val.cid]);
         
         if (content.success) {
@@ -96,7 +96,15 @@ app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
             let d = JSON.parse(content.content)
 
             if (d.content) {
-              data[val.alias != "" ? val.alias : val.public_key] = d.content;
+              if (val.alias != "") {
+                  data[val.alias] = d.content;
+              } else {
+                if (val.loose) {
+                  data[val.public_key] = d.content;
+                } else {
+                  data = { ...data, ...d.content};
+                }
+              }
             }
           }
         }
@@ -117,16 +125,19 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
 
     let tokenKey = await client.request("generate_token_key", [req.params.chainId, req.params.tokenAddress]);
 
-    let metaContract = await client.request("get_meta_contract", [tokenKey]);
+    // console.log("tokenKey: ", tokenKey);
+    // let metaContract = await client.request("get_meta_contract", [tokenKey]);
 
-    if (!metaContract.success) {
-      throw new Error(metaContract.err_msg);
-    }
+    // if (!metaContract.success) {
+    //   throw new Error(metaContract.err_msg);
+    // }
 
-    let dataKey = await client.request("generate_data_key", [req.params.chainId, req.params.tokenAddress, req.params.tokenId])
+    // let dataKey = await client.request("generate_data_key", [req.params.chainId, req.params.tokenAddress, req.params.tokenId])
 
-    let metadatas = await client.request("get_metadatas_by_block", [dataKey, metaContract.meta.meta_contract_id, ""]);
+    let metadatas = await client.request("get_metadatas_by_tokenkey", [tokenKey, req.params.tokenId, ""]);
     let data: any = {}
+
+    // console.log("metadatas: ",metadatas);
 
     if (metadatas.success) {
       for (let val of metadatas.metadatas) {
@@ -136,8 +147,18 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
           if (isJsonObject(content.content)) {
             let d = JSON.parse(content.content)
 
+            // console.log("d: ", d);
+
             if (d.content) {
-              data[val.alias != "" ? val.alias : val.public_key] = d.content;
+              if (val.alias != "") {
+                  data[val.alias] = d.content;
+              } else {
+                if (val.loose) {
+                  data[val.public_key] = d.content;
+                } else {
+                  data = { ...data, ...d.content};
+                }
+              }
             }
           }
         }

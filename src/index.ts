@@ -83,7 +83,28 @@ app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
     //   throw new Error(metaContract.err_msg);
     // }
 
-    let metadatas = await client.request("get_metadatas_by_tokenkey", [req.params.tokenKey, req.params.tokenId, ""]);
+    let metadatas = await client.request("search_metadatas", {
+      query: [
+        {
+          column: "token_key",
+          op: "=",
+          query: req.params.tokenKey,
+        },
+        {
+          column: "token_id",
+          op: "=",
+          query: req.params.tokenId,
+        },
+        {
+          column: "meta_contract_id",
+          op: "=",
+          query: "0x01",
+        },
+      ],
+      ordering: [],
+      from: 0,
+      to: 0,
+    });
     let data: any = {}
 
     if (metadatas.success) {
@@ -134,7 +155,28 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
 
     // let dataKey = await client.request("generate_data_key", [req.params.chainId, req.params.tokenAddress, req.params.tokenId])
 
-    let metadatas = await client.request("get_metadatas_by_tokenkey", [tokenKey, req.params.tokenId, ""]);
+    let metadatas = await client.request("search_metadatas", {
+      query: [
+        {
+          column: "token_key",
+          op: "=",
+          query: tokenKey,
+        },
+        {
+          column: "token_id",
+          op: "=",
+          query: req.params.tokenId,
+        },
+        {
+          column: "meta_contract_id",
+          op: "=",
+          query: "0x01",
+        },
+      ],
+      ordering: [],
+      from: 0,
+      to: 0,
+    });
     let data: any = {}
 
     // console.log("metadatas: ",metadatas);

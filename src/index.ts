@@ -126,8 +126,14 @@ app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
                   data = { ...data, ...d.content};
                 }
               }
+            } else {
+              if (val.alias != "") {
+                data[val.alias] = "";
+              } else {
+                data[val.public_key] = "";
+              }
             }
-          }
+          } 
         }
       }
     }
@@ -201,8 +207,14 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
                   data = { ...data, ...d.content};
                 }
               }
+            } else {
+              if (val.alias != "") {
+                data[val.alias] = "";
+              } else {
+                data[val.public_key] = "";
+              }
             }
-          }
+          } 
         }
       }
     }

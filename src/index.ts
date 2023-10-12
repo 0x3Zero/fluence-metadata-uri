@@ -75,7 +75,7 @@ app.get('/', (req: Request, res: Response) => {
 //   }
 // });
 
-app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
+app.get('/tk/:tokenKey/:tokenId', async (req: Request, res: Response) => {
   try {
     // let metaContract = await client.request("get_meta_contract", [req.params.tokenKey]);
 
@@ -120,11 +120,7 @@ app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
               if (val.alias != "") {
                   data[val.alias] = d.content;
               } else {
-                if (val.loose) {
-                  data[val.public_key] = d.content;
-                } else {
-                  data = { ...data, ...d.content};
-                }
+                data = { ...data, ...d.content};
               }
             } else {
               if (val.alias != "") {
@@ -147,7 +143,78 @@ app.get('/metadata/:tokenKey/:tokenId', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: Response) => {
+app.get('/pk/:pk/:tokenKey/:tokenId', async (req: Request, res: Response) => {
+  try {
+    // let metaContract = await client.request("get_meta_contract", [req.params.tokenKey]);
+
+    // if (!metaContract.success) {
+    //   throw new Error(metaContract.err_msg);
+    // }
+
+    let metadatas = await client.request("search_metadatas", {
+      query: [
+        {
+          column: "token_key",
+          op: "=",
+          query: req.params.tokenKey,
+        },
+        {
+          column: "token_id",
+          op: "=",
+          query: req.params.tokenId,
+        },
+        {
+          column: "meta_contract_id",
+          op: "=",
+          query: "0x01",
+        },
+      ],
+      ordering: [],
+      from: 0,
+      to: 0,
+    });
+    let data: any = {}
+
+    if (metadatas.success) {
+      // let filteredMetadatas = metadatas.metadatas.filter(m => m.meta_contract_id === metaContract.meta.meta_contract_id)
+      for (let val of metadatas.metadatas) {
+
+        if (val.public_key.toLowerCase() == "0x01" || val.public_key.toLowerCase() == req.params.pk.toLowerCase()) {
+          let content = await client.request("ipfs_get", [val.cid]);
+        
+          if (content.success) {
+            if (isJsonObject(content.content)) {
+              let d = JSON.parse(content.content)
+
+              if (d.content) {
+                if (val.alias != "") {
+                    data[val.alias] = d.content;
+                } else {
+                  data = { ...data, ...d.content};
+                }
+              } else {
+                if (val.alias != "") {
+                  data[val.alias] = "";
+                } else {
+                  data[val.public_key] = "";
+                }
+              }
+            } 
+          }
+        }
+      }
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.log({err})
+    res.status(400).json({
+      error: err
+    })
+  }
+});
+
+app.get('/ta/:chainId/:tokenAddress/:tokenId', async (req: Request, res: Response) => {
   try {
 
     let tokenKey = await client.request("generate_token_key", [req.params.chainId, req.params.tokenAddress]);
@@ -201,11 +268,7 @@ app.get('/metadata/:chainId/:tokenAddress/:tokenId', async (req: Request, res: R
               if (val.alias != "") {
                   data[val.alias] = d.content;
               } else {
-                if (val.loose) {
-                  data[val.public_key] = d.content;
-                } else {
-                  data = { ...data, ...d.content};
-                }
+                data = { ...data, ...d.content};
               }
             } else {
               if (val.alias != "") {

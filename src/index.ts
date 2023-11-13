@@ -116,17 +116,25 @@ app.get('/tk/:tokenKey/:tokenId', async (req: Request, res: Response) => {
           if (isJsonObject(content.content)) {
             let d = JSON.parse(content.content)
 
-            if (d.content) {
+            if (typeof d.content == "boolean") {
               if (val.alias != "") {
-                  data[val.alias] = d.content;
+                data[val.alias] = d.content;
               } else {
                 data = { ...data, ...d.content};
               }
             } else {
-              if (val.alias != "") {
-                data[val.alias] = "";
+              if (d.content) {
+                if (val.alias != "") {
+                    data[val.alias] = d.content;
+                } else {
+                  data = { ...data, ...d.content};
+                }
               } else {
-                data[val.public_key] = "";
+                if (val.alias != "") {
+                  data[val.alias] = "";
+                } else {
+                  data[val.public_key] = "";
+                }
               }
             }
           } 
@@ -186,17 +194,25 @@ app.get('/pk/:pk/:tokenKey/:tokenId', async (req: Request, res: Response) => {
             if (isJsonObject(content.content)) {
               let d = JSON.parse(content.content)
 
-              if (d.content) {
+              if (typeof d.content == "boolean") {
                 if (val.alias != "") {
-                    data[val.alias] = d.content;
+                  data[val.alias] = d.content;
                 } else {
                   data = { ...data, ...d.content};
                 }
               } else {
-                if (val.alias != "") {
-                  data[val.alias] = "";
+                if (d.content) {
+                  if (val.alias != "") {
+                      data[val.alias] = d.content;
+                  } else {
+                    data = { ...data, ...d.content};
+                  }
                 } else {
-                  data[val.public_key] = "";
+                  if (val.alias != "") {
+                    data[val.alias] = "";
+                  } else {
+                    data[val.public_key] = "";
+                  }
                 }
               }
             } 
@@ -263,18 +279,25 @@ app.get('/ta/:chainId/:tokenAddress/:tokenId', async (req: Request, res: Respons
             let d = JSON.parse(content.content)
 
             // console.log("d: ", d);
-
-            if (d.content) {
+            if (typeof d.content == "boolean") {
               if (val.alias != "") {
-                  data[val.alias] = d.content;
+                data[val.alias] = d.content;
               } else {
                 data = { ...data, ...d.content};
               }
             } else {
-              if (val.alias != "") {
-                data[val.alias] = "";
+              if (d.content) {
+                if (val.alias != "") {
+                    data[val.alias] = d.content;
+                } else {
+                  data = { ...data, ...d.content};
+                }
               } else {
-                data[val.public_key] = "";
+                if (val.alias != "") {
+                  data[val.alias] = "";
+                } else {
+                  data[val.public_key] = "";
+                }
               }
             }
           } 
